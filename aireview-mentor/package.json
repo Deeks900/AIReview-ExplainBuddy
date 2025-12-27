@@ -1,6 +1,7 @@
 {
   "name": "aireview-mentor",
   "displayName": "AIReview-Mentor",
+  "publisher": "TechByDeeksha",
   "description": "A code review facility in your editor",
   "version": "0.0.1",
   "engines": {

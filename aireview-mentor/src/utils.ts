@@ -66,20 +66,66 @@ export function captureTimestamps(dir: string): Map<string, number> {
    RUN BACKEND REVIEW
 ---------------------------*/
 export async function runReview(directoryPath: string, apiKey: string) {
-  const response = await fetch('http://localhost:8000/review', {
+  // Collect all files
+  const files: { [key: string]: string } = {};
+  walk(directoryPath, (file: string) => {
+    try {
+      files[file] = fs.readFileSync(file, 'utf-8');
+    } catch {
+      // Ignore binary files
+    }
+  });
+
+  const response = await fetch('https://aireview-explainbuddy.onrender.com/review', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ directoryPath, apiKey })
+    body: JSON.stringify({ files, apiKey })
   });
 
   if (!response.ok) {
     throw new Error(`Backend review failed: ${response.status} ${response.statusText}`);
   }
 
-  const result = await response.json() as { status: string; message?: string };
+  const result = await response.json() as { status: string; summary: any; modified_files: { [key: string]: string } };
   if (result.status !== 'success') {
-    throw new Error(`Review failed: ${result.message || 'Unknown error'}`);
+    throw new Error(`Review failed: Unknown error`);
   }
+
+  // Write modified files
+  for (const [filePath, content] of Object.entries(result.modified_files)) {
+    if (content !== files[filePath]) {
+      fs.writeFileSync(filePath, content, 'utf-8');
+    }
+  }
+
+  // Write summary files
+  const summaryJsonPath = path.join(directoryPath, 'CODE_REVIEW_SUMMARY.json');
+  fs.writeFileSync(summaryJsonPath, JSON.stringify(result.summary, null, 2), 'utf-8');
+
+  const summaryTxtPath = path.join(directoryPath, 'CODE_REVIEW_SUMMARY.txt');
+  const summary = result.summary.summary || {};
+  let txtContent = "📊 CODE REVIEW COMPLETE\n\n";
+  txtContent += `Total Files Analyzed: ${summary.total_files_analyzed || 0}\n`;
+  txtContent += `Issues Fixed: ${result.summary.issues?.length || 0}\n\n`;
+  txtContent += "🔴 SECURITY FIXES:\n";
+  result.summary.issues?.forEach((issue: any) => {
+    if (issue.severity?.toLowerCase() === 'critical') {
+      txtContent += `- ${issue.file}:${issue.line} – ${issue.description}\n`;
+    }
+  });
+  txtContent += "\n🟠 BUG FIXES:\n";
+  result.summary.issues?.forEach((issue: any) => {
+    if (issue.severity?.toLowerCase() === 'major') {
+      txtContent += `- ${issue.file}:${issue.line} – ${issue.description}\n`;
+    }
+  });
+  txtContent += "\n🟡 CODE QUALITY IMPROVEMENTS:\n";
+  result.summary.issues?.forEach((issue: any) => {
+    if (issue.severity?.toLowerCase() === 'minor') {
+      txtContent += `- ${issue.file}:${issue.line} – ${issue.description}\n`;
+    }
+  });
+  fs.writeFileSync(summaryTxtPath, txtContent, 'utf-8');
 }
 
 export function detectModifiedFiles(
@@ -162,7 +208,7 @@ export function readSummaryJson(dirPath: string): any | null {
    EXPLAIN CODE
 ---------------------------*/
 export async function explainCode(code: string, language: string, apiKey: string): Promise<string> {
-    const response = await fetch('http://localhost:8000/explain', {
+    const response = await fetch('https://aireview-explainbuddy.onrender.com/explain', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

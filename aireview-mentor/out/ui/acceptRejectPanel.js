@@ -39,7 +39,7 @@ const path = __importStar(require("path"));
 function showAcceptRejectPanel(filePath, original, modified, issues, onAccept, onReject) {
     if (!filePath)
         return;
-    const panel = vscode.window.createWebviewPanel('aiReviewActions', 'AI Review Actions', vscode.ViewColumn.Beside, { enableScripts: true });
+    const panel = vscode.window.createWebviewPanel('aiReviewActions', 'AI Review Actions', vscode.ViewColumn.One, { enableScripts: true });
     const issuesHtml = issues.map(issue => `
     <div style="margin-bottom: 12px; padding: 8px; border-left: 3px solid #d29922; background: var(--vscode-input-background);">
       <strong>Line ${issue.line || issue.line_start}:</strong> ${issue.comment || issue.description}

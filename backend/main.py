@@ -5,7 +5,7 @@ from agent import agent, explain_code
 app = FastAPI()
 
 class ReviewRequest(BaseModel):
-    directoryPath: str
+    files: dict
     apiKey:str
 
 class ExplainRequest(BaseModel):
@@ -22,12 +22,8 @@ def review_code(req: ReviewRequest):
         print("check")
         api_key=req.apiKey
         print(api_key)
-        agent(req.directoryPath, api_key)
-        return {
-            "status": "success",
-            "message": "Code review completed",
-            "summary_file": f"{req.directoryPath}/CODE_REVIEW_SUMMARY.txt"
-        }
+        result = agent(req.files, api_key)
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

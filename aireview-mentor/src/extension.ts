@@ -201,7 +201,7 @@ export function activate(context: vscode.ExtensionContext) {
           async (progress) => {
             try {
               // Call backend for explanation
-              const response = await fetch('http://localhost:8000/explain', {
+              const response = await fetch('https://aireview-explainbuddy.onrender.com/explain', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ code: selectedText, language, apiKey })

@@ -8,13 +8,8 @@ listFilesFunction = {
     "description": "Lists all the files lying in the Directory.",
     "parameters": {
         "type": "object",
-        "properties": {
-            "dirPath": {
-                "type": "string",
-                "description": "Directory Path from which all the files will be listed.",
-            },
-        },
-        "required": ["dirPath"],
+        "properties": {},
+        "required": [],
     },
 }
 

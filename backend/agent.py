@@ -5,6 +5,7 @@ from google import genai
 from google.genai import types
 from functionDeclarations import listFilesFunction, readFileFunction, writeFileFunction
 from toolsMapper import toolsMapper
+from tools import files as global_files
 
 # Load environment variables
 load_dotenv()
@@ -15,12 +16,12 @@ directoryPath = None
 tools = types.Tool(function_declarations=[listFilesFunction, readFileFunction, writeFileFunction])
 
 # -------------------- CONFIG --------------------
-def buildConfig(directoryPath):
+def buildConfig(files):
     """
     Gemini system instruction configuration with full instructions.
     """
     full_instruction = f"""
-You are an expert code reviewer. The directory is {directoryPath}.
+You are an expert code reviewer. The files are provided.
 
 Use listFiles to get files, readFile to read content, writeFile to fix issues.
 
@@ -43,22 +44,26 @@ def extract_function_call(response):
     return None
 
 # -------------------- AGENT --------------------
-def agent(dirPath, apiKey):
+def agent(files, apiKey):
     """
     Main Gemini agent to review & fix code
     """
     global directoryPath
-    directoryPath = dirPath
+    directoryPath = None  # Not used anymore
+    global global_files
+    global_files.clear()
+    global_files.update(files)
     client = genai.Client(api_key=apiKey)
     REVIEW_RESULTS = {"summary": {}, "issues": []}
+    modified_files = files.copy()  # Copy of original files
 
     try:
-        print(f"Reviewing directory: {dirPath}")
+        print(f"Reviewing {len(files)} files")
 
         # Initial prompt
         history.append(types.Content(
             role="user",
-            parts=[types.Part(text=f"Review the code in the directory {directoryPath} and fix all issues. Start by calling the listFiles function with dirPath='{directoryPath}'.")]
+            parts=[types.Part(text=f"Review the code in the provided files and fix all issues. Start by calling the listFiles function.")]
         ))
 
         # -------------------- FUNCTION CALL LOOP --------------------
@@ -66,7 +71,7 @@ def agent(dirPath, apiKey):
             response = client.models.generate_content(
                 model="gemini-2.5-flash",
                 contents=history,
-                config=buildConfig(directoryPath),
+                config=buildConfig(modified_files),
             )
 
             function_call = extract_function_call(response)
@@ -107,7 +112,7 @@ def agent(dirPath, apiKey):
         response = client.models.generate_content(
             model="gemini-2.5-flash",
             contents=history,
-            config=buildConfig(directoryPath),
+            config=buildConfig(modified_files),
         )
 
         print("=== Gemini Raw Response ===")
@@ -136,13 +141,13 @@ def agent(dirPath, apiKey):
             print("No JSON found in Gemini response.")
 
         # -------------------- WRITE JSON SUMMARY --------------------
-        json_summary_path = Path(directoryPath) / "CODE_REVIEW_SUMMARY.json"
+        json_summary_path = Path("/tmp") / "CODE_REVIEW_SUMMARY.json"  # Not used, but for compatibility
         with json_summary_path.open("w", encoding="utf-8") as jf:
             json.dump(REVIEW_RESULTS, jf, indent=2)
         print(f"JSON summary written: {json_summary_path}")
 
         # -------------------- WRITE TEXT SUMMARY --------------------
-        text_summary_path = Path(directoryPath) / "CODE_REVIEW_SUMMARY.txt"
+        text_summary_path = Path("/tmp") / "CODE_REVIEW_SUMMARY.txt"
         with text_summary_path.open("w", encoding="utf-8") as tf:
             summary = REVIEW_RESULTS.get("summary", {})
             tf.write("📊 CODE REVIEW COMPLETE\n\n")
@@ -171,13 +176,13 @@ def agent(dirPath, apiKey):
         REVIEW_RESULTS = {"summary": {"total_files_analyzed": 0, "total_issues": 0, "critical": 0, "major": 0, "minor": 0}, "issues": []}
 
     # Always write the summary files
-    json_summary_path = Path(directoryPath) / "CODE_REVIEW_SUMMARY.json"
+    json_summary_path = Path("/tmp") / "CODE_REVIEW_SUMMARY.json"
     with json_summary_path.open("w", encoding="utf-8") as jf:
         json.dump(REVIEW_RESULTS, jf, indent=2)
     print(f"JSON summary written: {json_summary_path}")
 
     # Write text summary
-    text_summary_path = Path(directoryPath) / "CODE_REVIEW_SUMMARY.txt"
+    text_summary_path = Path("/tmp") / "CODE_REVIEW_SUMMARY.txt"
     with text_summary_path.open("w", encoding="utf-8") as tf:
         summary = REVIEW_RESULTS.get("summary", {})
         tf.write("📊 CODE REVIEW COMPLETE\n\n")
@@ -200,6 +205,12 @@ def agent(dirPath, apiKey):
                 tf.write(f"- {issue['file']}:{issue['line']} – {issue['description']}\n")
 
     print(f"Text summary written: {text_summary_path}")
+
+    return {
+        "status": "success",
+        "summary": REVIEW_RESULTS,
+        "modified_files": modified_files
+    }
 
 # -------------------- EXPLAIN CODE --------------------
 def explain_code(code: str, language: str, api_key: str) -> str:

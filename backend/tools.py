@@ -8,19 +8,18 @@ IGNORE_DIRS = {
 
 IGNORE_FILE_EXTENSIONS = {".lock", ".log"}
 
+files = {}  # Global dict for file contents
+
 #Let's first create the function that will be listing all the files in the directory or subdirectories
-def listFiles(dirPath):
+def listFiles():
     allFiles = []
     try:
-        basePath = Path(dirPath)
-
-        for path in basePath.rglob('*'):
+        for filePath in files.keys():
+            path = Path(filePath)
             if any(ignored_dir in path.parts for ignored_dir in IGNORE_DIRS):
                 continue
-
-            if path.is_file() and path.suffix not in IGNORE_FILE_EXTENSIONS:
-                # Return absolute path instead of relative path
-                allFiles.append(str(path.resolve()))
+            if path.suffix not in IGNORE_FILE_EXTENSIONS:
+                allFiles.append(filePath)
     except Exception as e:
         print(f"Exception {e} in listFiles")
     finally:
@@ -31,11 +30,10 @@ def listFiles(dirPath):
 #Now let's create the other function to read those files 
 def readFile(filePath):
     try:
-        path = Path(filePath)
-        if path.is_file():
-            return path.read_text(encoding='utf-8')
+        if filePath in files:
+            return files[filePath]
         else:
-            print(f"[readFile] Not a valid file: {filePath}")
+            print(f"[readFile] File not found: {filePath}")
             return ""
     except Exception as e:
         print(f"[readFile] Exception: {e}")
@@ -46,11 +44,8 @@ def readFile(filePath):
 def writeFile(filePath, content):
     isSuccess = True
     try:
-        path = Path(filePath)
-        
-        with path.open('w', encoding='utf-8') as file:
-            file.write(content)
-            print("Data is written to file successfully.")
+        files[filePath] = content
+        print("Data is written to file successfully.")
     except Exception as e:
         print(f"Exception {e} occurred in the writeFile function.")
         isSuccess = False

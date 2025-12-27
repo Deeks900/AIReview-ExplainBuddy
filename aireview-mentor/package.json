@@ -1,0 +1,81 @@
+{
+  "name": "aireview-mentor",
+  "displayName": "AIReview-Mentor",
+  "description": "A code review facility in your editor",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.107.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "aireview-mentor.review-mentor",
+        "title": "AI Review Mentor"
+      },
+      {
+        "command": "aireview-mentor.explainCode",
+        "title": "Explain Code with AI"
+      },
+      {
+        "command": "aireview-mentor.exportReport",
+        "title": "Export Review Report"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "aiReviewIssues",
+          "name": "AI Review Issues",
+          "icon": "$(warning)",
+          "contextualTitle": "AI Review Issues"
+        }
+      ]
+    },
+    "menus": {
+      "editor/context": [
+        {
+          "command": "aireview-mentor.explainCode",
+          "when": "editorHasSelection",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "aireview-mentor.explainCode",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "aireview-mentor.exportReport",
+          "when": "workspaceFolderCount != 0"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/diff": "^7.0.2",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "@types/vscode": "^1.107.0",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2",
+    "eslint": "^9.39.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.48.1"
+  },
+  "dependencies": {
+    "diff": "^8.0.2"
+  }
+}
